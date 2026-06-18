@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechXO - Modern Computer Board Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'JetBrains Mono', 'Kanit', sans-serif;
+        }
+        /* เอฟเฟกต์เรืองแสงสไตล์นีออนไซเบอร์ */
+        .glow-p1 { box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); border-color: rgba(239, 68, 68, 1); }
+        .glow-p2 { box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); border-color: rgba(59, 130, 246, 1); }
+        .glow-p3 { box-shadow: 0 0 15px rgba(34, 197, 94, 0.6); border-color: rgba(34, 197, 94, 1); }
+
+        /* แอนิเมชันขอบสีรุ้งสำหรับ Matrix Winner */
+        @keyframes cyber-rainbow {
+            0% { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
+            20% { border-color: #00ffff; box-shadow: 0 0 15px #00ffff; }
+            40% { border-color: #ffff00; box-shadow: 0 0 15px #ffff00; }
+            60% { border-color: #00ff00; box-shadow: 0 0 15px #00ff00; }
+            80% { border-color: #ff00ff; box-shadow: 0 0 15px #ff00ff; }
+            100% { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
+        }
+        .winner-rainbow {
+            animation: cyber-rainbow 1.5s linear infinite;
+            border-width: 4px !important;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-sky-50 to-indigo-50 min-h-screen text-slate-800 flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-6 border border-slate-200/60 transition-all duration-300">
+        
+        <div class="text-center mb-6">
+            <h1 class="text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent drop-shadow-sm tracking-tight">
+                ⚡ TechXO
+            </h1>
+            <p class="text-[10px] text-slate-400 font-mono uppercase tracking-widest mt-1">System Core: Version 2026</p>
+        </div>
+
+        <div id="main-menu" class="space-y-6">
+            <div class="text-center text-slate-500 text-sm font-medium">// โหมดออฟไลน์ (เล่นเครื่องเดียวกัน)</div>
+            <div class="grid grid-cols-1 gap-3">
+                <button onclick="startGame(2)" class="group relative bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold py-4 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 overflow-hidden">
+                    <span class="relative z-10 flex justify-center items-center gap-2 text-md">
+                        🖥️ Dual Core (2 คน) <span class="text-xs opacity-75 font-mono">[3x3]</span>
+                    </span>
+                    <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </button>
+
+                <button onclick="startGame(3)" class="group relative bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-4 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 overflow-hidden">
+                    <span class="relative z-10 flex justify-center items-center gap-2 text-md">
+                        🚀 Multi Core (3 คน) <span class="text-xs opacity-75 font-mono">[4x4]</span>
+                    </span>
+                    <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </button>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                <div class="text-center text-slate-500 text-sm font-medium">// โหมดออนไลน์ (Real-time Multiplayer)</div>
+                <input id="room-id-input" type="text" maxlength="4" placeholder="กรอกรหัสห้อง 4 หลักเพื่อเข้าร่วม" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-center font-mono text-sm focus:outline-none focus:border-blue-500 bg-slate-50 text-slate-700 placeholder-slate-400">
+                <div class="grid grid-cols-2 gap-2 font-mono text-xs">
+                    <button onclick="createOnlineRoom(2)" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold py-3 rounded-xl shadow-sm hover:shadow-md transition active:scale-95">
+                        🧱 สร้างห้อง (2 คน)
+                    </button>
+                    <button onclick="joinOnlineRoom()" class="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold py-3 rounded-xl shadow-sm hover:shadow-md transition active:scale-95">
+                        🔌 เข้าร่วมห้อง
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-slate-100">
+                <h3 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center gap-1">📊 System Log: ประวัติผู้ชนะล่าสุด</h3>
+                <div id="leaderboard" class="text-xs space-y-2 max-h-40 overflow-y-auto pr-1 text-slate-400 text-center py-2 font-mono">
+                    กำลังดาวน์โหลดข้อมูลระบบจาก Firestore...
+                </div>
+            </div>
+        </div>
+
+        <div id="game-screen" class="hidden space-y-6">
+            <div id="turn-indicator" class="flex items-center justify-center gap-3 bg-slate-50 py-3 px-4 rounded-2xl border border-slate-200/50 font-mono">
+                </div>
+
+            <div class="flex justify-center">
+                <div id="game-board" class="grid gap-2 p-2 bg-slate-100/50 rounded-2xl border border-slate-200/40">
+                    </div>
+            </div>
+
+            <div class="flex gap-2 text-sm font-mono">
+                <button onclick="resetGame()" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-3 rounded-xl transition active:scale-95">
+                    ⚙️ REBOOT
+                </button>
+                <button onclick="backToMenu()" class="w-1/2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium py-3 rounded-xl transition active:scale-95">
+                    🏠 MENU
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, doc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // คีย์เชื่อมต่อ Firebase ของคุณ (เชื่อมกับฐานข้อมูลระบบเรียบร้อยแล้ว)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQhFGlwVQ6apTi2y7Qtp5wJcEeR4lI0AI",
+            authDomain: "gamereal-85505.firebaseapp.com",
+            databaseURL: "https://gamereal-85505-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "gamereal-85505",
+            storageBucket: "gamereal-85505.firebasestorage.app",
+            messagingSenderId: "149076125510",
+            appId: "1:149076125510:web:510903c6fa263570e92747"
+        };
+
+        // ตั้งค่า Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // เปลี่ยนข้อมูลไอคอนและกำหนดสีผู้เล่นตามธีมคอมพิวเตอร์
+        const playersConfig = {
+            1: { name: 'SYSTEM_P1', icon: '💻', color: 'red', glowClass: 'glow-p1', textColor: 'text-red-500' },
+            2: { name: 'SYSTEM_P2', icon: '🖱️', color: 'blue', glowClass: 'glow-p2', textColor: 'text-blue-500' },
+            3: { name: 'SYSTEM_P3', icon: '🖥️', color: 'green', glowClass: 'glow-p3', textColor: 'text-green-600' }
+        };
+
+        let currentMode = 2; 
+        let currentPlayer = 1;
+        let boardState = [];
+        let isGameActive = true;
+        let gridSize = 3;
+
+        // ตัวแปรสำหรับระบบออนไลน์
+        let currentRoomId = null;
+        let myPlayerNumber = null;
+        let unsubscribeRoom = null;
+
+        // ฟังก์ชันเริ่มเกม (โหมดออฟไลน์ปกติ)
+        window.startGame = function(mode) {
+            currentRoomId = null;
+            myPlayerNumber = null;
+            if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
+
+            currentMode = mode;
+            gridSize = mode === 2 ? 3 : 4;
+            currentPlayer = 1;
+            isGameActive = true;
+            boardState = Array(gridSize * gridSize).fill(null);
+
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+
+            renderBoard();
+            updateTurnIndicator();
+        };
+
+        // ฟังก์ชันสร้างห้องออนไลน์
+        window.createOnlineRoom = async function(mode) {
+            const roomId = Math.floor(1000 + Math.random() * 9000).toString(); // สุ่มไอดีห้อง 4 หลัก
+            currentRoomId = roomId;
+            myPlayerNumber = 1; // คนสร้างห้องเป็น P1 เสมอ
+            
+            currentMode = mode;
+            gridSize = mode === 2 ? 3 : 4;
+            currentPlayer = 1;
+            isGameActive = true;
+            boardState = Array(gridSize * gridSize).fill(null);
+
+            try {
+                // สร้างเอกสารห้องลงในคอลเลกชัน "xo_rooms" บน Firebase
+                await setDoc(doc(db, "xo_rooms", roomId), {
+                    boardState: boardState,
+                    currentPlayer: 1,
+                    mode: mode,
+                    gridSize: gridSize,
+                    isGameActive: true,
+                    playersCount: 1
+                });
+                
+                alert(`🧱 สร้างห้องออนไลน์สำเร็จ!\nรหัสห้องของคุณคือ: ${roomId}\n\nส่งรหัส 4 หลักนี้ให้เพื่อนกรอกเข้าเล่นได้เลยครับ`);
+                listenToRoom(roomId);
+            } catch (e) {
+                alert("❌ เกิดข้อผิดพลาด: ไม่สามารถตั้งค่าห้องบนคลาวด์ได้ กรุณาตรวจสอบว่าคุณได้ไปกดเปิดสิทธิ์ในหน้า Firestore Database และเลือกเป็น Start in test mode หรือยังครับ");
+            }
+        };
+
+        // ฟังก์ชันเข้าร่วมห้องออนไลน์ด้วยรหัส
+        window.joinOnlineRoom = async function() {
+            const roomId = document.getElementById('room-id-input').value.trim();
+            if (!roomId) return alert("กรุณากรอกรหัสห้อง 4 หลักก่อนครับ");
+
+            currentRoomId = roomId;
+            myPlayerNumber = null; 
+
+            listenToRoom(roomId);
+        };
+
+        // ฟังก์ชันเปิดท่อเช็คข้อมูลออนไลน์แบบ Real-time
+        function listenToRoom(roomId) {
+            if (unsubscribeRoom) unsubscribeRoom();
+
+            unsubscribeRoom = onSnapshot(doc(db, "xo_rooms", roomId), async (snapshot) => {
+                if (!snapshot.exists()) {
+                    alert("❌ ไม่พบรหัสห้องนี้ในระบบระบบคอมพิวเตอร์หลัก");
+                    backToMenu();
+                    return;
+                }
+                
+                const data = snapshot.data();
+                
+                // คำนวณแจกเบอร์ผู้เล่นให้ผู้เข้าเล่นใหม่
+                if (myPlayerNumber === null) {
+                    const currentPlayers = data.playersCount || 1;
+                    if (currentPlayers >= data.mode) {
+                        alert("❌ ขออภัย ห้องนี้ผู้เล่นเต็มระบบแล้ว!");
+                        backToMenu();
+                        return;
+                    }
+                    myPlayerNumber = currentPlayers + 1;
+                    await updateDoc(doc(db, "xo_rooms", roomId), {
+                        playersCount: myPlayerNumber
+                    });
+                    alert(`🔌 เชื่อมต่อดาต้าเบสสำเร็จ! คุณคือ SYSTEM_P${myPlayerNumber}`);
+                }
+
+                // ดึงสเตตัสบนคลาวด์มาซิงค์ในเครื่อง
+                boardState = data.boardState;
+                currentPlayer = data.currentPlayer;
+                currentMode = data.mode;
+                gridSize = data.gridSize;
+                isGameActive = data.isGameActive;
+
+                document.getElementById('main-menu').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+
+                renderBoard();
+                
+                // ตรวจผลชนะของบอร์ดปัจจุบัน
+                const winResult = checkWin();
+                if (winResult) {
+                    endGame(winResult);
+                } else if (!boardState.includes(null)) {
+                    endGame('draw');
+                } else {
+                    updateTurnIndicator();
+                }
+            });
+        }
+
+        // ฟังก์ชันกลับหน้าหลัก
+        window.backToMenu = function() {
+            if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
+            currentRoomId = null;
+            myPlayerNumber = null;
+
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            loadLeaderboard();
+        };
+
+        // แสดงสถานะเทิร์นปัจจุบัน
+        function updateTurnIndicator() {
+            const indicator = document.getElementById('turn-indicator');
+            if (!isGameActive) return;
+            const p = playersConfig[currentPlayer];
+            
+            let roomInfo = "";
+            if (currentRoomId) {
+                roomInfo = `<div class="text-[10px] text-slate-400 font-mono w-full text-center mb-1">🔗 ONLINE ROOM: ${currentRoomId} | ตัวคุณคือ: P${myPlayerNumber}</div>`;
+            }
+
+            indicator.innerHTML = `
+                <div class="w-full flex flex-col items-center justify-center">
+                    ${roomInfo}
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="text-xl">${p.icon}</span>
+                        <span class="font-bold text-xs tracking-wider ${p.textColor}">👉 RUNNING: ${p.name}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // วาดตารางเกมตามโหมด
+        function renderBoard() {
+            const boardEl = document.getElementById('game-board');
+            boardEl.className = `grid gap-2 p-2 bg-slate-100/50 rounded-2xl border border-slate-200/40 grid-cols-${gridSize}`;
+            boardEl.innerHTML = '';
+
+            for (let i = 0; i < boardState.length; i++) {
+                const cell = document.createElement('button');
+                cell.id = `cell-${i}`;
+                cell.className = `w-16 h-16 bg-white rounded-xl flex items-center justify-center text-2xl font-bold border border-slate-200/60 shadow-sm transition-all duration-150 hover:bg-slate-50 active:scale-95`;
+                
+                if (boardState[i]) {
+                    const p = playersConfig[boardState[i]];
+                    cell.innerText = p.icon;
+                    cell.classList.add(p.glowClass);
+                }
+
+                cell.addEventListener('click', () => handleCellClick(i));
+                boardEl.appendChild(cell);
+            }
+        }
+
+        // การประมวลผลเมื่อกดเลือกช่อง
+        async function handleCellClick(index) {
+            // ถ้าเป็นระบบออนไลน์ และยังไม่ถึงตาของเรา ให้ล็อกไม่ให้กด
+            if (currentRoomId && currentPlayer !== myPlayerNumber) {
+                alert("🚫 ใจเย็นๆ สหาย! ยังไม่ถึงตาของคุณ กรุณารออีกฝ่ายเดินก่อน");
+                return;
+            }
+
+            if (boardState[index] !== null || !isGameActive) return;
+
+            boardState[index] = currentPlayer;
+
+            if (!currentRoomId) {
+                // ออฟไลน์รันแบบเดิม
+                renderBoard();
+                const winResult = checkWin();
+                if (winResult) { endGame(winResult); return; }
+                if (!boardState.includes(null)) { endGame('draw'); return; }
+
+                currentPlayer = currentPlayer + 1 > currentMode ? 1 : currentPlayer + 1;
+                updateTurnIndicator();
+            } else {
+                // ออนไลน์: ส่งข้อมูลขึ้นไปซิงค์บน Firebase
+                const nextPlayer = currentPlayer + 1 > currentMode ? 1 : currentPlayer + 1;
+                try {
+                    await updateDoc(doc(db, "xo_rooms", currentRoomId), {
+                        boardState: boardState,
+                        currentPlayer: nextPlayer
+                    });
+                } catch(e) {
+                    console.error("Failed to sync move: ", e);
+                }
+            }
+        }
+
+        // ตรวจสอบผู้ชนะ
+        function checkWin() {
+            const size = gridSize;
+            const winLength = 3;
+
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    const index = r * size + c;
+                    const p = boardState[index];
+                    if (!p) continue;
+
+                    const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+                    for (let [dr, dc] of directions) {
+                        let winCells = [index];
+                        for (let i = 1; i < winLength; i++) {
+                            const nr = r + dr * i;
+                            const nc = c + dc * i;
+                            if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+                                if (boardState[nr * size + nc] === p) {
+                                    winCells.push(nr * size + nc);
+                                } else { break; }
+                            } else { break; }
+                        }
+                        if (winCells.length === winLength) {
+                            return { winner: p, cells: winCells };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // สิ้นสุดเกม
+        async function endGame(result) {
+            isGameActive = false;
+            const indicator = document.getElementById('turn-indicator');
+            let roomInfo = currentRoomId ? `<div class="text-[10px] text-slate-400 font-mono w-full text-center mb-1">🔗 ONLINE ROOM: ${currentRoomId}</div>` : '';
+
+            if (result === 'draw') {
+                indicator.innerHTML = `
+                    <div class="w-full flex flex-col items-center justify-center">
+                        ${roomInfo}
+                        <span class="font-bold text-xs text-slate-500">🚫 STATUS: OVERFLOW (เสมอ)</span>
+                    </div>
+                `;
+            } else {
+                const winnerPlayer = playersConfig[result.winner];
+                indicator.innerHTML = `
+                    <div class="w-full flex flex-col items-center justify-center">
+                        ${roomInfo}
+                        <div class="flex items-center justify-center gap-2">
+                            <span class="text-xl">🏆</span>
+                            <span class="font-bold text-xs ${winnerPlayer.textColor}">SUCCESS: ${winnerPlayer.name} WIN!</span>
+                        </div>
+                    </div>
+                `;
+
+                result.cells.forEach(idx => {
+                    const el = document.getElementById(`cell-${idx}`);
+                    if (el) el.className = `w-16 h-16 bg-white rounded-xl flex items-center justify-center text-2xl font-bold winner-rainbow`;
+                });
+
+                // ป้องกันการเซฟซ้ำซ้อน: ถ้าเล่นออนไลน์ ให้เฉพาะเครื่องที่ชนะส่งบันทึกคะแนนเข้า Firestore
+                if (!currentRoomId || (currentRoomId && myPlayerNumber === result.winner)) {
+                    try {
+                        await addDoc(collection(db, "tech_leaderboard"), {
+                            player: winnerPlayer.name,
+                            mode: `${currentMode} Cores ${currentRoomId ? '(Online)' : ''}`,
+                            timestamp: new Date()
+                        });
+                    } catch (e) {
+                        console.error("Error saving tech score: ", e);
+                    }
+                }
+            }
+        }
+
+        // รีเซ็ตเกมใหม่
+        window.resetGame = async function() {
+            if (currentRoomId) {
+                // ระบบออนไลน์: อนุญาตเฉพาะหัวห้อง (P1) สั่งรีเซ็ตบอร์ดใหม่ได้
+                if (myPlayerNumber !== 1) {
+                    alert("⚠️ เฉพาะหัวหน้าห้อง (SYSTEM_P1) เท่านั้นที่สั่ง REBOOT รีเซ็ตกระดานออนไลน์ได้ครับ");
+                    return;
+                }
+                const initialBoard = Array(gridSize * gridSize).fill(null);
+                try {
+                    await updateDoc(doc(db, "xo_rooms", currentRoomId), {
+                        boardState: initialBoard,
+                        currentPlayer: 1,
+                        isGameActive: true
+                    });
+                } catch(e) {
+                    console.error("Failed to reboot room: ", e);
+                }
+            } else {
+                startGame(currentMode);
+            }
+        };
+
+        // ดึงข้อมูล Log จาก Firestore มาโชว์ที่ Leaderboard
+        async function loadLeaderboard() {
+            const lbContainer = document.getElementById('leaderboard');
+            try {
+                const q = query(collection(db, "tech_leaderboard"), orderBy("timestamp", "desc"), limit(5));
+                const querySnapshot = await getDocs(q);
+                
+                if(querySnapshot.empty) {
+                    lbContainer.innerHTML = `<div class="text-[11px] text-slate-400"># NO_DATA: ยังไม่มีประวัติการบันทึก</div>`;
+                    return;
+                }
+
+                lbContainer.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const div = document.createElement('div');
+                    div.className = 'flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl text-[11px] font-medium text-slate-600 border border-slate-200/40 font-mono';
+                    div.innerHTML = `
+                        <span>🟢 ${data.player}</span>
+                        <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px]">${data.mode}</span>
+                    `;
+                    lbContainer.appendChild(div);
+                });
+            } catch (e) {
+                lbContainer.innerHTML = `<div class="text-[11px] text-red-400"># ERROR: ไม่สามารถเข้าถึงฐานข้อมูลได้</div>`;
+            }
+        }
+
+        loadLeaderboard();
+    </script>
+</body>
+</html>
